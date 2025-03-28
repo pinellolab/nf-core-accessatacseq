@@ -3,7 +3,7 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
+include { FASTQ_FASTQC_UMITOOLS_TRIMGALORE } from '../subworkflows/nf-core/fastq_fastqc_umitools_trimgalore/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -24,12 +24,27 @@ workflow ACCESSATACSEQ {
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
+
+    //
+    // SUBWORKFLOW: Read QC and trim adapters
+    //
+    FASTQ_FASTQC_UMITOOLS_TRIMGALORE (
+        // INPUT_CHECK.out.reads,
+        ch_samplesheet, // Input channel: samplesheet
+        params.skip_fastqc || params.skip_qc,
+        false, // with_umi: true/false (if UMI extraction is to be performed)
+        false, // skip_umi_extract: true/false (if UMI extraction is to be skipped)
+        params.skip_trimming,
+        0, // umi_discard_read: 0 (none), 1 (R1), 2 (R2) - only used if with_umi is true
+        params.min_trimmed_reads
+    )
+
     //
     // MODULE: Run FastQC
     //
-    FASTQC (
-        ch_samplesheet
-    )
+    // FASTQC (
+    //     ch_samplesheet
+    // )
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
