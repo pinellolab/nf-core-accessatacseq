@@ -3,11 +3,15 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQ_FASTQC_UMITOOLS_TRIMGALORE } from '../subworkflows/nf-core/fastq_fastqc_umitools_trimgalore/main'
+include { INPUT_CHECK    } from '../subworkflows/local/input_check'
 include { FASTQ_ALIGN_DEDUP_BWAMETH } from '../subworkflows/nf-core/fastq_align_dedup_bwameth/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+include { CAT_FASTQ                 } from '../modules/nf-core/cat/fastq/main'
 
 include { paramsSummaryMap       } from 'plugin/nf-schema'
+include { FASTQC                    } from '../modules/nf-core/fastqc/main'
+include { TRIMGALORE                } from '../modules/nf-core/trimgalore/main'
+
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_accessatacseq_pipeline'
@@ -21,42 +25,72 @@ include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_acce
 workflow ACCESSATACSEQ {
 
     take:
-    ch_samplesheet // channel: samplesheet read in from --input
-    ch_fasta      // channel: [ path(fasta) ] // Input FASTA file for alignment
-    ch_fasta_index     // channel: [ path(fasta index)     ]
-    ch_bwameth_index   // channel: [ path(bwameth index)   ]
+    samplesheet         // channel: [ path(samplesheet.csv) ]
+    ch_fasta            // channel: [ path(fasta) ] // Input FASTA file for alignment
+    ch_fasta_index      // channel: [ path(fasta index)     ]
+    ch_bwameth_index    // channel: [ path(bwameth index)   ]
+    
     main:
-
-    ch_versions = Channel.empty()
+    // ch_fastq         = Channel.empty()
+    // ch_fastqc_html   = Channel.empty()
+    // ch_fastqc_zip    = Channel.empty()
+    // ch_reads         = Channel.empty()
+    // ch_bam           = Channel.empty()
+    // ch_bai           = Channel.empty()
+    // ch_qualimap      = Channel.empty()
+    // ch_preseq        = Channel.empty()
     ch_multiqc_files = Channel.empty()
+    ch_versions      = Channel.empty()
+
+    
+    // Branch channels from input samplesheet channel
+    ch_samplesheet = samplesheet.branch { meta, fastqs ->
+                            single  : fastqs.size() == 1
+                                return [ meta, fastqs.flatten() ]
+                            multiple: fastqs.size() > 1
+                                return [ meta, fastqs.flatten() ]
+                        }
+
+    // samplesheet.map { meta, files ->
+    //     println "meta.id = ${meta.id}"
+    //     tuple(meta, files)
+    // }
+
+    
+    // MODULE: Concatenate FastQ files from same sample if required
+    CAT_FASTQ (
+        ch_samplesheet.multiple
+    )
+    ch_fastq    = CAT_FASTQ.out.reads.mix(ch_samplesheet.single)
+    ch_versions = ch_versions.mix(CAT_FASTQ.out.versions.first())
 
     //
-    // SUBWORKFLOW: Read QC and trim adapters
+    // MODULE: Run FastQC
     //
-    FASTQ_FASTQC_UMITOOLS_TRIMGALORE (
-        // INPUT_CHECK.out.reads,
-        ch_samplesheet, // Input channel: samplesheet
-        false, // skip_fastqc: true/false (if FastQC should be skipped for the initial reads)
-        false, // with_umi: true/false (if UMI extraction is to be performed)
-        false, // skip_umi_extract: true/false (if UMI extraction is to be skipped)
-        false, // skip_trim: true/false (if adapter trimming should be skipped)
-        0, // umi_discard_read: 0 (none), 1 (R1), 2 (R2) - only used if with_umi is true
-        10000 // params.min_trimmed_reads
+    FASTQC (
+        ch_fastq
     )
-    ch_versions = ch_versions.mix(FASTQ_FASTQC_UMITOOLS_TRIMGALORE.out.versions)
+    ch_fastqc_html   = FASTQC.out.html
+    ch_fastqc_zip    = FASTQC.out.zip
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{ meta, zip -> zip })
+    ch_versions      = ch_versions.mix(FASTQC.out.versions.first())
 
-    // Collect FastQC outputs from the subworkflow
-    ch_multiqc_files = ch_multiqc_files.mix(
-        // Collect FastQC outputs from the subworkflow
-        FASTQ_FASTQC_UMITOOLS_TRIMGALORE.out.fastqc_zip.collect{it[1]}.ifEmpty([]) +
-        FASTQ_FASTQC_UMITOOLS_TRIMGALORE.out.trim_zip.collect{it[1]}.ifEmpty([]) +
-        FASTQ_FASTQC_UMITOOLS_TRIMGALORE.out.trim_log.collect{it[1]}.ifEmpty([])
-    )
+    
+    // MODULE: Run TrimGalore!
+    if (!params.skip_trimming) {
+        TRIMGALORE(
+            ch_fastq
+        )
+        ch_reads    = TRIMGALORE.out.reads
+        ch_versions = ch_versions.mix(TRIMGALORE.out.versions.first())
+    } else {
+        ch_reads    = ch_fastq
+    }
+
 
     //
     // SUBWORKFLOW: Alignment with BWA-METH & BAM QC
     //
-    ch_reads    = FASTQ_FASTQC_UMITOOLS_TRIMGALORE.out.reads // Collect trimmed reads from the previous subworkflow
     FASTQ_ALIGN_DEDUP_BWAMETH (
             ch_reads,
             ch_fasta,
@@ -64,7 +98,16 @@ workflow ACCESSATACSEQ {
             ch_bwameth_index,
             false, 
     )
+    ch_versions = ch_versions.mix(FASTQ_ALIGN_DEDUP_BWAMETH.out.versions.unique{ it.baseName })
 
+    // // Collect FastQC outputs from the subworkflow
+    // ch_multiqc_files = ch_multiqc_files.mix(
+    //     FASTQ_ALIGN_DEDUP_BWAMETH.out.multiqc
+    // )
+
+    // // Collect outputs from the subworkflow
+    // ch_bam = FASTQ_ALIGN_DEDUP_BWAMETH.out.bam
+    // ch_bai = FASTQ_ALIGN_DEDUP_BWAMETH.out.bai
 
     //
     // Collate and save software versions

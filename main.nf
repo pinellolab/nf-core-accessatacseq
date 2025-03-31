@@ -8,6 +8,7 @@
     Slack  : https://nfcore.slack.com/channels/accessatacseq
 ----------------------------------------------------------------------------------------
 */
+nextflow.enable.dsl = 2
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,13 +27,10 @@ include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_acce
     GENOME PARAMETER VALUES
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
 params.fasta         = getGenomeAttribute('fasta')
 params.fasta_index   = getGenomeAttribute('fasta_index')
-params.bismark_index = getGenomeAttribute('bismark')
+params.bwameth_index = getGenomeAttribute('bwameth_index')
+
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     NAMED WORKFLOWS FOR PIPELINE

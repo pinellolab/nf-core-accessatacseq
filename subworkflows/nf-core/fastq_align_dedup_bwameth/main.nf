@@ -19,7 +19,7 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
     skip_deduplication   // boolean: whether to deduplicate alignments
 
     main:
-
+    
     ch_alignment                     = Channel.empty()
     ch_alignment_index               = Channel.empty()
     ch_samtools_flagstat             = Channel.empty()
@@ -63,8 +63,7 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
      * Sort raw output BAM
      */
     SAMTOOLS_SORT (
-        ch_alignment,
-        [[:],[]] // [ [meta], [fasta]]
+        ch_alignment
     )
     ch_alignment = SAMTOOLS_SORT.out.bam
     ch_versions  = ch_versions.mix(SAMTOOLS_SORT.out.versions)
@@ -123,22 +122,22 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
      * Extract per-base methylation and plot methylation bias
      */
 
-    METHYLDACKEL_EXTRACT (
-        ch_alignment.join(ch_alignment_index),
-        ch_fasta.map{ meta, fasta_file -> fasta_file },
-        ch_fasta_index.map{ meta, fasta_index -> fasta_index }
-    )
-    ch_methydackel_extract_bedgraph  = METHYLDACKEL_EXTRACT.out.bedgraph
-    ch_methydackel_extract_methylkit = METHYLDACKEL_EXTRACT.out.methylkit
-    ch_versions                      = ch_versions.mix(METHYLDACKEL_EXTRACT.out.versions)
+    // METHYLDACKEL_EXTRACT (
+    //     ch_alignment.join(ch_alignment_index),
+    //     ch_fasta.map{ meta, fasta_file -> fasta_file },
+    //     ch_fasta_index.map{ meta, fasta_index -> fasta_index }
+    // )
+    // ch_methydackel_extract_bedgraph  = METHYLDACKEL_EXTRACT.out.bedgraph
+    // ch_methydackel_extract_methylkit = METHYLDACKEL_EXTRACT.out.methylkit
+    // ch_versions                      = ch_versions.mix(METHYLDACKEL_EXTRACT.out.versions)
 
-    METHYLDACKEL_MBIAS (
-        ch_alignment.join(ch_alignment_index),
-        ch_fasta.map{ meta, fasta_file -> fasta_file },
-        ch_fasta_index.map{ meta, fasta_index -> fasta_index }
-    )
-    ch_methydackel_mbias = METHYLDACKEL_MBIAS.out.txt
-    ch_versions          = ch_versions.mix(METHYLDACKEL_MBIAS.out.versions)
+    // METHYLDACKEL_MBIAS (
+    //     ch_alignment.join(ch_alignment_index),
+    //     ch_fasta.map{ meta, fasta_file -> fasta_file },
+    //     ch_fasta_index.map{ meta, fasta_index -> fasta_index }
+    // )
+    // ch_methydackel_mbias = METHYLDACKEL_MBIAS.out.txt
+    // ch_versions          = ch_versions.mix(METHYLDACKEL_MBIAS.out.versions)
 
     /*
      * Collect MultiQC inputs
@@ -146,17 +145,21 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
     ch_multiqc_files = ch_picard_metrics.collect{ meta, metrics -> metrics }
                         .mix(ch_samtools_flagstat.collect{ meta, flagstat -> flagstat })
                         .mix(ch_samtools_stats.collect{ meta, stats -> stats  })
-                        .mix(ch_methydackel_extract_bedgraph.collect{ meta, bedgraph -> bedgraph  })
-                        .mix(ch_methydackel_mbias.collect{ meta, txt -> txt  })
+
+    // ch_multiqc_files = ch_picard_metrics.collect{ meta, metrics -> metrics }
+    //                     .mix(ch_samtools_flagstat.collect{ meta, flagstat -> flagstat })
+    //                     .mix(ch_samtools_stats.collect{ meta, stats -> stats  })
+    //                     .mix(ch_methydackel_extract_bedgraph.collect{ meta, bedgraph -> bedgraph  })
+    //                     .mix(ch_methydackel_mbias.collect{ meta, txt -> txt  })
 
     emit:
     bam                           = ch_alignment                     // channel: [ val(meta), [ bam ]       ]
     bai                           = ch_alignment_index               // channel: [ val(meta), [ bai ]       ]
     samtools_flagstat             = ch_samtools_flagstat             // channel: [ val(meta), [ flagstat ]  ]
     samtools_stats                = ch_samtools_stats                // channel: [ val(meta), [ stats ]     ]
-    methydackel_extract_bedgraph  = ch_methydackel_extract_bedgraph  // channel: [ val(meta), [ bedgraph ]  ]
-    methydackel_extract_methylkit = ch_methydackel_extract_methylkit // channel: [ val(meta), [ methylkit ] ]
-    methydackel_mbias             = ch_methydackel_mbias             // channel: [ val(meta), [ mbias ]     ]
+    // methydackel_extract_bedgraph  = ch_methydackel_extract_bedgraph  // channel: [ val(meta), [ bedgraph ]  ]
+    // methydackel_extract_methylkit = ch_methydackel_extract_methylkit // channel: [ val(meta), [ methylkit ] ]
+    // methydackel_mbias             = ch_methydackel_mbias             // channel: [ val(meta), [ mbias ]     ]
     picard_metrics                = ch_picard_metrics                // channel: [ val(meta), [ metrics ]   ]
     multiqc                       = ch_multiqc_files                 // channel: [ *{html,txt}              ]
     versions                      = ch_versions                      // channel: [ versions.yml             ]
