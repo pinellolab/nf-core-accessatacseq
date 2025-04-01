@@ -65,6 +65,23 @@
                     "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
                     "fa_icon": "far fa-file-code"
                 },
+                "fasta_index": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "pattern": "^\\S+\\.fn?a(sta)?.fai$",
+                    "description": "Path to Fasta index file.",
+                    "help_text": "The FASTA index file (`.fa.fai`) is only needed when using the bwa_meth aligner. It is used by MethylDackel. If using Bismark this parameter is ignored.",
+                    "fa_icon": "fas fa-bookmark"
+                },
+                "bwameth_index": {
+                    "type": "string",
+                    "format": "path",
+                    "description": "bwameth index filename base",
+                    "help_text": "Directory for a bwa-meth genome reference index. Only used when using the bwa-meth aligner.\n\nNote that this is not a complete path, but the directory containing the reference. For example, if you have file paths such as `/path/to/ref/genome.fa.bwameth.c2t.bwt`, you should specify `/path/to/ref/`.",
+                    "fa_icon": "far fa-dot-circle"
+                },
                 "igenomes_ignore": {
                     "type": "boolean",
                     "description": "Do not load the iGenomes reference config.",
@@ -226,6 +243,237 @@
                     "hidden": true
                 }
             }
+        },
+        "save_intermediate_files": {
+            "title": "Save intermediate files",
+            "type": "object",
+            "description": "Options for saving a variety of intermediate files",
+            "default": "",
+            "properties": {
+                "save_reference": {
+                    "type": "boolean",
+                    "description": "Save reference(s) to results directory",
+                    "fa_icon": "far fa-save"
+                },
+                "save_align_intermeds": {
+                    "type": "boolean",
+                    "description": "Save aligned intermediates to results directory",
+                    "fa_icon": "fas fa-save"
+                },
+                "unmapped": {
+                    "type": "boolean",
+                    "description": "Bismark only - Save unmapped reads to FastQ files",
+                    "help_text": "Use the `--unmapped` flag to set the `--unmapped` flag with Bismark align and save the unmapped reads to FastQ files.",
+                    "fa_icon": "fas fa-recycle"
+                },
+                "save_trimmed": {
+                    "type": "boolean",
+                    "description": "Save trimmed reads to results directory.",
+                    "fa_icon": "fas fa-cut",
+                    "help_text": "By default, trimmed FastQ files will not be saved to the results directory. Specify this flag (or set to true in your config file) to copy these files to the results directory when complete."
+                }
+            },
+            "fa_icon": "fas fa-save"
+        },
+        "bwameth_options": {
+            "title": "bwa-meth options",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "use_gpu": {
+                    "type": "boolean",
+                    "description": "Run Parabricks GPU-accelerated fq2bammeth module for alignment",
+                    "default": false,
+                    "fa_icon": "fas fa-dot-circle"
+                },
+                "min_depth": {
+                    "type": "integer",
+                    "description": "Specify a minimum read coverage for MethylDackel to report a methylation call.",
+                    "default": 0,
+                    "fa_icon": "fas fa-angle-double-down"
+                },
+                "ignore_flags": {
+                    "type": "boolean",
+                    "description": "MethylDackel - ignore SAM flags",
+                    "fa_icon": "fas fa-eye-slash",
+                    "help_text": "Run MethylDackel with the `--ignore_flags` option, to ignore SAM flags."
+                },
+                "methyl_kit": {
+                    "type": "boolean",
+                    "description": "Save files for use with methylKit",
+                    "help_text": "Run MethylDackel with the `--methyl_kit` option, to produce files suitable for use with the methylKit R package.",
+                    "fa_icon": "fas fa-ellipsis-h"
+                }
+            },
+            "fa_icon": "far fa-circle"
+        },
+        "run_pipeline_steps": {
+            "title": "Run pipeline steps",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "run_preseq": {
+                    "type": "boolean",
+                    "description": "Run preseq/lcextrap tool",
+                    "fa_icon": "fas fa-fast-forward"
+                },
+                "run_qualimap": {
+                    "type": "boolean",
+                    "description": "Run qualimap/bamqc tool",
+                    "fa_icon": "fas fa-fast-forward"
+                }
+            },
+            "fa_icon": "fas fa-fast-forward"
+        },
+        "qualimap_options": {
+            "title": "Qualimap Options",
+            "type": "object",
+            "description": "Qualimap configurations",
+            "default": "",
+            "properties": {
+                "bamqc_regions_file": {
+                    "type": "string",
+                    "format": "file-path",
+                    "exists": true,
+                    "mimetype": "text/plain",
+                    "pattern": "^\\S+\\.gff|\\.bed(\\.gz)?$",
+                    "description": "A GFF or BED file containing the target regions which will be passed to Qualimap/Bamqc.",
+                    "help_text": "Setting this option could be useful if you want calculate coverage stats over a list of regions, i.e. for targeted methylation sequencing data."
+                }
+            }
+        },
+        "special_library_types": {
+            "title": "Special library types",
+            "type": "object",
+            "description": "Presets for working with specific bisulfite library preparation methods.",
+            "default": "",
+            "properties": {
+                "pbat": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-outdent",
+                    "description": "Preset for working with PBAT libraries.",
+                    "help_text": "Specify this parameter when working with PBAT _(Post Bisulfite Adapter Tagging)_ libraries.\n\nUsing this parameter sets the `--pbat` flag when aligning with Bismark. This tells Bismark to align complementary strands (the opposite of `--directional`).\n\nAdditionally, this is a trimming preset equivalent to `--clip_r1 6` `--clip_r2 9` `--three_prime_clip_r1 6` `--three_prime_clip_r2 9`"
+                },
+                "rrbs": {
+                    "type": "boolean",
+                    "description": "Turn on if dealing with MspI digested material.",
+                    "help_text": "Use this parameter when working with RRBS _(Reduced Representation Bisulfite Sequencing)_ data, that is digested using MspI.\n\nSpecifying `--rrbs` will pass on the `--rrbs` parameter to TrimGalore! See the [TrimGalore! documentation](https://github.com/FelixKrueger/TrimGalore/blob/master/Docs/Trim_Galore_User_Guide.md#rrbs-specific-options-mspi-digested-material) to read more about the effects of this option.\n\nThis parameter also makes the pipeline skip the deduplication step.",
+                    "fa_icon": "fas fa-compress"
+                },
+                "slamseq": {
+                    "type": "boolean",
+                    "description": "Run bismark in SLAM-seq mode.",
+                    "fa_icon": "fas fa-wave-square",
+                    "help_text": "Specify to run Bismark with the `--slam` flag to run bismark in [SLAM-seq mode](https://github.com/FelixKrueger/Bismark/blob/master/CHANGELOG.md#slam-seq-mode) \n\n> NB: Only works with when using the `bismark_hisat` aligner (`--aligner bismark_hisat`)"
+                },
+                "em_seq": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cubes",
+                    "description": "Preset for EM-seq libraries.",
+                    "help_text": "Equivalent to `--clip_r1 10` `--clip_r2 10` `--three_prime_clip_r1 10` `--three_prime_clip_r2 10`.\n\nAlso sets the `--maxins` flag to `1000` for Bismark."
+                },
+                "single_cell": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "description": "Trimming preset for single-cell bisulfite libraries.",
+                    "help_text": "Equivalent to `--clip_r1 6` `--clip_r2 6` `--three_prime_clip_r1 6` `--three_prime_clip_r2 6`.\n\nAlso sets the `--non_directional` flag for Bismark."
+                },
+                "accel": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "help_text": "Equivalent to `--clip_r1 10` `--clip_r2 15` `--three_prime_clip_r1 10` `--three_prime_clip_r2 10`",
+                    "description": "Trimming preset for the Accel kit."
+                },
+                "cegx": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "description": "Trimming preset for the CEGX bisulfite kit.",
+                    "help_text": "Equivalent to `--clip_r1 6` `--clip_r2 6` `--three_prime_clip_r1 2` `--three_prime_clip_r2 2`"
+                },
+                "epignome": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "description": "Trimming preset for the Epignome kit.",
+                    "help_text": "Equivalent to `--clip_r1 8` `--clip_r2 8` `--three_prime_clip_r1 8` `--three_prime_clip_r2 8`"
+                },
+                "zymo": {
+                    "type": "boolean",
+                    "fa_icon": "fas fa-cut",
+                    "description": "Trimming preset for the Zymo kit.",
+                    "help_text": "Equivalent to `--clip_r1 10` `--clip_r2 10` `--three_prime_clip_r1 10` `--three_prime_clip_r2 10`.\n\nAlso sets the `--non_directional` flag for Bismark."
+                }
+            },
+            "fa_icon": "fas fa-prescription-bottle"
+        },
+        "adapter_trimming": {
+            "title": "Adapter Trimming",
+            "type": "object",
+            "description": "Bisulfite libraries often require additional base pairs to be removed from the ends of the reads before alignment.",
+            "default": "",
+            "properties": {
+                "clip_r1": {
+                    "type": "integer",
+                    "description": "Trim bases from the 5' end of read 1 (or single-end reads).",
+                    "default": 0,
+                    "fa_icon": "fas fa-cut"
+                },
+                "clip_r2": {
+                    "type": "integer",
+                    "description": "Trim bases from the 5' end of read 2 (paired-end only).",
+                    "default": 0,
+                    "fa_icon": "fas fa-cut"
+                },
+                "three_prime_clip_r1": {
+                    "type": "integer",
+                    "description": "Trim bases from the 3' end of read 1 AFTER adapter/quality trimming.",
+                    "default": 0,
+                    "fa_icon": "fas fa-cut"
+                },
+                "three_prime_clip_r2": {
+                    "type": "integer",
+                    "description": "Trim bases from the 3' end of read 2 AFTER adapter/quality trimming",
+                    "default": 0,
+                    "fa_icon": "fas fa-cut"
+                },
+                "nextseq_trim": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Trim bases below this quality value from the 3' end of the read, ignoring high-quality G bases"
+                },
+                "length_trim": {
+                    "type": "integer",
+                    "description": "Discard reads that become shorter than INT because of either quality or adapter trimming.",
+                    "fa_icon": "fas fa-trash-alt"
+                }
+            },
+            "fa_icon": "fas fa-cut",
+            "help_text": "In addition to manually specifying bases to be specified, the pipeline has a number of parameter presets:\n\n| Parameter       | 5' R1 Trim | 5' R2 Trim | 3' R1 Trim | 3' R2 Trim |\n|-----------------|------------|------------|------------|------------|\n| `--pbat`        | 6          | 9          | 6          | 9          |\n| `--single_cell` | 6          | 6          | 6          | 6          |\n| `--epignome`    | 8          | 8          | 8          | 8          |\n| `--accel`       | 10         | 15         | 10         | 10         |\n| `--zymo`        | 10         | 15         | 10         | 10         |\n| `--cegx`        | 6          | 6          | 2          | 2          |\n\nNote that you can use the `--skip_trimming` parameter to skip trimming completely."
+        },
+        "skip_pipeline_steps": {
+            "title": "Skip pipeline steps",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "skip_trimming": {
+                    "type": "boolean",
+                    "description": "Skip read trimming.",
+                    "fa_icon": "fas fa-fast-forward"
+                },
+                "skip_deduplication": {
+                    "type": "boolean",
+                    "description": "Skip deduplication step after alignment.",
+                    "help_text": "Deduplication removes PCR duplicate reads after alignment. Specifying this option will skip this step, leaving duplicate reads in your data.\n\nNote that this is turned on automatically if `--rrbs` is specified.",
+                    "fa_icon": "fas fa-fast-forward"
+                },
+                "skip_multiqc": {
+                    "type": "boolean",
+                    "description": "Skip MultiQC"
+                }
+            },
+            "fa_icon": "fas fa-fast-forward"
         }
     },
     "allOf": [

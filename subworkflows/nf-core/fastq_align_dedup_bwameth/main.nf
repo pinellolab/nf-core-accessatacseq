@@ -6,8 +6,8 @@ include { SAMTOOLS_FLAGSTAT                             } from '../../../modules
 include { SAMTOOLS_STATS                                } from '../../../modules/nf-core/samtools/stats/main'
 include { PICARD_MARKDUPLICATES                         } from '../../../modules/nf-core/picard/markduplicates/main'
 include { SAMTOOLS_INDEX as SAMTOOLS_INDEX_DEDUPLICATED } from '../../../modules/nf-core/samtools/index/main'
-include { METHYLDACKEL_EXTRACT                          } from '../../../modules/nf-core/methyldackel/extract/main'
-include { METHYLDACKEL_MBIAS                            } from '../../../modules/nf-core/methyldackel/mbias/main'
+// include { METHYLDACKEL_EXTRACT                          } from '../../../modules/nf-core/methyldackel/extract/main'
+// include { METHYLDACKEL_MBIAS                            } from '../../../modules/nf-core/methyldackel/mbias/main'
 
 workflow FASTQ_ALIGN_DEDUP_BWAMETH {
 
@@ -24,40 +24,24 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
     ch_alignment_index               = Channel.empty()
     ch_samtools_flagstat             = Channel.empty()
     ch_samtools_stats                = Channel.empty()
-    ch_methydackel_extract_bedgraph  = Channel.empty()
-    ch_methydackel_extract_methylkit = Channel.empty()
-    ch_methydackel_mbias             = Channel.empty()
+    // ch_methydackel_extract_bedgraph  = Channel.empty()
+    // ch_methydackel_extract_methylkit = Channel.empty()
+    // ch_methydackel_mbias             = Channel.empty()
     ch_picard_metrics                = Channel.empty()
     ch_multiqc_files                 = Channel.empty()
     ch_versions                      = Channel.empty()
 
     /*
-     * Align with bwameth
-     */
-    if (params.use_gpu) {
-        /*
-        * Align with parabricks GPU enabled fq2bammeth implementation of bwameth
-        */
-        PARABRICKS_FQ2BAMMETH (
-            ch_reads,
-            ch_fasta,
-            ch_bwameth_index,
-            [] // known sites
-        )
-        ch_alignment = PARABRICKS_FQ2BAMMETH.out.bam
-        ch_versions  = ch_versions.mix(PARABRICKS_FQ2BAMMETH.out.versions)
-    } else {
-        /*
-        * Align with CPU version of bwameth
-        */
-        BWAMETH_ALIGN (
-            ch_reads,
-            ch_fasta,
-            ch_bwameth_index
-        )
-        ch_alignment = BWAMETH_ALIGN.out.bam
-        ch_versions  = BWAMETH_ALIGN.out.versions
-    }
+    * Align with CPU version of bwameth
+    */
+    BWAMETH_ALIGN (
+        ch_reads,
+        ch_fasta,
+        ch_bwameth_index
+    )
+    ch_alignment = BWAMETH_ALIGN.out.bam
+    ch_versions  = BWAMETH_ALIGN.out.versions
+
 
     /*
      * Sort raw output BAM
