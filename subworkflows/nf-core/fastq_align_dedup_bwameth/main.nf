@@ -80,27 +80,48 @@ workflow FASTQ_ALIGN_DEDUP_BWAMETH {
     ch_samtools_stats = SAMTOOLS_STATS.out.stats
     ch_versions       = ch_versions.mix(SAMTOOLS_STATS.out.versions)
 
-    if (!skip_deduplication) {
-        /*
-        * Run Picard MarkDuplicates
-        */
-        PICARD_MARKDUPLICATES (
-            ch_alignment,
-            ch_fasta,
-            ch_fasta_index
-        )
-        /*
-         * Run samtools index on deduplicated alignment
-        */
-        SAMTOOLS_INDEX_DEDUPLICATED (
-            PICARD_MARKDUPLICATES.out.bam
-        )
-        ch_alignment       = PICARD_MARKDUPLICATES.out.bam
-        ch_alignment_index = SAMTOOLS_INDEX_DEDUPLICATED.out.bai
-        ch_picard_metrics  = PICARD_MARKDUPLICATES.out.metrics
-        ch_versions        = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions)
-        ch_versions        = ch_versions.mix(SAMTOOLS_INDEX_DEDUPLICATED.out.versions)
-    }
+    /*
+    * Run Picard MarkDuplicates
+    */
+    PICARD_MARKDUPLICATES (
+        ch_alignment,
+        ch_fasta,
+        ch_fasta_index
+    )
+    /*
+        * Run samtools index on deduplicated alignment
+    */
+    SAMTOOLS_INDEX_DEDUPLICATED (
+        PICARD_MARKDUPLICATES.out.bam
+    )
+    
+    ch_alignment       = PICARD_MARKDUPLICATES.out.bam
+    ch_alignment_index = SAMTOOLS_INDEX_DEDUPLICATED.out.bai
+    ch_picard_metrics  = PICARD_MARKDUPLICATES.out.metrics
+    ch_versions        = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions)
+    ch_versions        = ch_versions.mix(SAMTOOLS_INDEX_DEDUPLICATED.out.versions)
+        
+    // if (!skip_deduplication) {
+    //     /*
+    //     * Run Picard MarkDuplicates
+    //     */
+    //     PICARD_MARKDUPLICATES (
+    //         ch_alignment,
+    //         ch_fasta,
+    //         ch_fasta_index
+    //     )
+    //     /*
+    //      * Run samtools index on deduplicated alignment
+    //     */
+    //     SAMTOOLS_INDEX_DEDUPLICATED (
+    //         PICARD_MARKDUPLICATES.out.bam
+    //     )
+    //     ch_alignment       = PICARD_MARKDUPLICATES.out.bam
+    //     ch_alignment_index = SAMTOOLS_INDEX_DEDUPLICATED.out.bai
+    //     ch_picard_metrics  = PICARD_MARKDUPLICATES.out.metrics
+    //     ch_versions        = ch_versions.mix(PICARD_MARKDUPLICATES.out.versions)
+    //     ch_versions        = ch_versions.mix(SAMTOOLS_INDEX_DEDUPLICATED.out.versions)
+    // }
 
     /*
      * Extract per-base methylation and plot methylation bias
