@@ -120,6 +120,10 @@ workflow ACCESSATACSEQ {
     ch_multiqc_files = ch_multiqc_files.mix(PRESEQ_LCEXTRAP.out.log.collect{ it[1] }.ifEmpty([]))
     
     //
+    // MODULE: ATAC-seq quality check
+    //
+
+    //
     // Collate and save software versions
     //
     softwareVersionsToYAML(ch_versions)

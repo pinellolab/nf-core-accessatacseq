@@ -471,6 +471,14 @@
                 "skip_multiqc": {
                     "type": "boolean",
                     "description": "Skip MultiQC"
+                },
+                "skip_atac_qc": {
+                    "type": "boolean",
+                    "description": "Skip ATAC signal quality check"
+                },
+                "skip_access_qc": {
+                    "type": "boolean",
+                    "description": "Skip ACCESS signal quality check"
                 }
             },
             "fa_icon": "fas fa-fast-forward"
